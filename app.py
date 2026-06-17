@@ -3,25 +3,28 @@ import gspread
 import pandas as pd
 from datetime import datetime, timedelta
 from google.oauth2.service_account import Credentials
+import json
 
-# 1. 구글 시트 연결 설정
+# 1. 구글 시트 연결 설정 (Secrets 사용)
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-creds = Credentials.from_service_account_file('key.json', scopes=SCOPES)
+
+# Streamlit의 Secrets에서 인증 정보를 안전하게 가져옵니다.
+creds_dict = json.loads(st.secrets["GCP_CREDENTIALS"])
+creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
 client = gspread.authorize(creds)
+
 SPREADSHEET_ID = '15z-7zo8H8Epe6N5fT8mtg0iIQqvgkKEWgSQ8AAHS1xo'
 sheet = client.open_by_key(SPREADSHEET_ID).sheet1
 
-st.set_page_config(layout="wide") # 화면을 넓게 사용
+st.set_page_config(layout="wide")
 st.title("📋 팀 근무 스케줄 현황판")
 
-# 2. 날짜 계산 (이번 주 월~금, 다음 주 월~금)
+# 2. 날짜 계산
 def get_schedule_dates():
     today = datetime.now()
     monday_this_week = today - timedelta(days=today.weekday())
     dates = []
-    # 이번 주 월~금
     for i in range(5): dates.append(monday_this_week + timedelta(days=i))
-    # 다음 주 월~금
     for i in range(7, 12): dates.append(monday_this_week + timedelta(days=i))
     return dates
 
@@ -49,4 +52,4 @@ with col3: work = st.selectbox("근무", ["본사", "재택", "휴가", "취소"
 
 if st.button("스케줄 반영"):
     sheet.append_row([name, date, work])
-    st.rerun() # 저장 후 자동 새로고침
+    st.rerun()
